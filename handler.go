@@ -309,8 +309,6 @@ func (s *handler) handle(ctx context.Context, req request, w func(func(io.Writer
 	defer span.End()
 
 	method := cases.Title(language.Und, cases.NoLower).String(req.Method)
-	fmt.Println("method = ", method)
-
 	handler, ok := s.methods[method]
 	if !ok {
 		aliasTo, ok := s.aliasedMethods[method]
