@@ -279,11 +279,18 @@ func (s *handler) getSpan(ctx context.Context, req request) (context.Context, *t
 }
 
 func (s *handler) createError(err error) *respError {
+	// MODIFIED
 	var code ErrorCode = 1
-	if s.errors != nil {
-		c, ok := s.errors.byType[reflect.TypeOf(err)]
-		if ok {
-			code = c
+
+	val := reflect.ValueOf(err)
+	for i := 0; i < val.NumField(); i++ {
+		valueField := val.Field(i)
+		kind := valueField.Kind()
+
+		// Code
+		if val.Type().Field(i).Name == "Code" &&
+			(kind == reflect.Int || kind == reflect.Int16 || kind == reflect.Int32 || kind == reflect.Int64) {
+			code = ErrorCode(valueField.Int())
 		}
 	}
 
