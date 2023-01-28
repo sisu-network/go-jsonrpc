@@ -15,6 +15,8 @@ import (
 	"go.opencensus.io/trace/propagation"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-jsonrpc/metrics"
@@ -306,14 +308,17 @@ func (s *handler) handle(ctx context.Context, req request, w func(func(io.Writer
 	ctx, _ = tag.New(ctx, tag.Insert(metrics.RPCMethod, req.Method))
 	defer span.End()
 
-	handler, ok := s.methods[req.Method]
+	method := cases.Title(language.Und, cases.NoLower).String(req.Method)
+	fmt.Println("method = ", method)
+
+	handler, ok := s.methods[method]
 	if !ok {
-		aliasTo, ok := s.aliasedMethods[req.Method]
+		aliasTo, ok := s.aliasedMethods[method]
 		if ok {
 			handler, ok = s.methods[aliasTo]
 		}
 		if !ok {
-			rpcError(w, &req, rpcMethodNotFound, fmt.Errorf("method '%s' not found", req.Method))
+			rpcError(w, &req, rpcMethodNotFound, fmt.Errorf("method '%s' not found", method))
 			stats.Record(ctx, metrics.RPCInvalidMethod.M(1))
 			done(false)
 			return
@@ -344,11 +349,13 @@ func (s *handler) handle(ctx context.Context, req request, w func(func(io.Writer
 		// "normal" param list; no good way to do named params in Golang
 
 		var ps []param
-		err := json.Unmarshal(req.Params, &ps)
-		if err != nil {
-			rpcError(w, &req, rpcParseError, xerrors.Errorf("unmarshaling param array: %w", err))
-			stats.Record(ctx, metrics.RPCRequestError.M(1))
-			return
+		if len(req.Params) != 0 {
+			err := json.Unmarshal(req.Params, &ps)
+			if err != nil {
+				rpcError(w, &req, rpcParseError, xerrors.Errorf("unmarshaling param array: %w", err))
+				stats.Record(ctx, metrics.RPCRequestError.M(1))
+				return
+			}
 		}
 
 		if len(ps) != handler.nParams {
