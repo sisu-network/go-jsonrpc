@@ -165,7 +165,13 @@ func (s *handler) register(namespace string, r interface{}) {
 
 		valOut, errOut, _ := processFuncOut(funcType)
 
-		s.methods[namespace+"."+method.Name] = methodHandler{
+		// MODIFY: Support empty name space. In this case, there is no dot.
+		prefix := namespace + "."
+		if namespace == "" {
+			prefix = namespace
+		}
+
+		s.methods[prefix+method.Name] = methodHandler{
 			paramReceivers: recvs,
 			nParams:        ins,
 
